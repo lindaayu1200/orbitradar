@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>orbitradar - token launch radar</title>
+<link rel="stylesheet" href="app.css">
+<script src="../data.js"></script>
+<script defer src="app.js"></script>
+</head>
+<body>
+<header id="hdr" class="hdr">
+  <div class="hdr-main">
+    <div class="brand"><span class="brand-mark">OR</span><span class="brand-txt">ORBITRADAR<span class="brand-sub"> / token launch radar</span></span></div>
+    <h1 id="headline">Ranking pre-token protocols by a fitted, tested implied value</h1>
+    <div id="subline" class="subline"></div>
+  </div>
+  <div class="hdr-side">
+    <div class="stamp"><span class="stamp-k">SNAPSHOT</span><span id="asof" class="stamp-v"></span></div>
+    <div class="stamp"><span class="stamp-k">MODEL</span><span id="model-version" class="stamp-v"></span></div>
+    <div class="legend"><span class="chip chip-farm">FARM</span><span class="chip chip-thin">THIN</span><span class="chip chip-skip">SKIP</span></div>
+  </div>
+</header>
+
+<section id="kpis" class="kpis" aria-label="Radar summary metrics"></section>
+
+<section class="proof" aria-label="Model evidence">
+  <div class="panel">
+    <div class="panel-h"><h2>Peer multiple fit</h2><span class="panel-tag">TVL x multiple</span></div>
+    <div class="two-col">
+      <div>
+        <div class="mini-h">KEPT TERMS <span class="hint">lower held-out miss in both tests</span></div>
+        <table class="terms"><thead><tr><th>term</th><th>LOO delta</th><th>walk-forward delta</th></tr></thead><tbody id="mkept"></tbody></table>
+        <div class="mini-h dim-h">TESTED, NOT KEPT <span class="hint">honesty: terms that failed a held-out test</span></div>
+        <table class="terms dropped"><thead><tr><th>term</th><th>LOO delta</th><th>WF delta</th></tr></thead><tbody id="mdrop"></tbody></table>
+      </div>
+      <div>
+        <div class="mini-h">HELD-OUT ERROR <span class="hint">mean absolute log error, peer mcap/TVL</span></div>
+        <div id="mfit" class="statgrid"></div>
+        <div class="mini-h">COMPARABLES</div>
+        <div id="mpeers" class="statgrid"></div>
+        <div class="formula">implied = TVL x (peer median mcap/TVL, shrunken to global) x growth x age x token odds</div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-h"><h2>Token odds</h2><span class="panel-tag">logistic, fitted on the snapshot itself</span></div>
+    <div class="mini-h">FEATURE CHECK <span class="hint">refit without each feature, Brier change</span></div>
+    <table class="terms"><thead><tr><th>feature</th><th>coefficient</th><th>Brier change</th></tr></thead><tbody id="okept"></tbody></table>
+    <div class="mini-h dim-h">TESTED, NOT KEPT</div>
+    <table class="terms dropped"><thead><tr><th>feature</th><th>coefficient</th><th>Brier change</th></tr></thead><tbody id="odrop"></tbody></table>
+    <div id="ofit" class="statgrid"></div>
+    <div class="formula">odds = sigmoid(intercept + growth + age + size + watchlist); Brier compared with the base rate</div>
+  </div>
+</section>
+
+<section id="honesty" class="honesty" aria-label="Model limitations"></section>
+
+<section class="account-wrap" aria-label="Snapshot accounting">
+  <div class="acct-h"><h2>Every snapshot protocol accounted for</h2><span id="acct-total"></span></div>
+  <div id="accounting" class="acct"></div>
+  <div id="acct-legend" class="acct-legend"></div>
+</section>
+
+<section class="controls" aria-label="Filters">
+  <label class="ctl">SEARCH<input id="f-search" type="search" placeholder="name or slug" aria-label="Search name or slug"></label>
+  <label class="ctl">CATEGORY<select id="f-cat" aria-label="Filter category"></select></label>
+  <label class="ctl">CHAIN<select id="f-chain" aria-label="Filter chain"></select></label>
+  <label class="ctl">VERDICT<select id="f-verdict" aria-label="Filter verdict"></select></label>
+  <label class="ctl">BADGE<select id="f-badge" aria-label="Filter badge"></select></label>
+  <label class="ctl">MIN TVL<input id="f-tvl" type="number" min="0" step="1000000" placeholder="0" aria-label="Minimum TVL"></label>
+  <label class="ctl">MIN ODDS<input id="f-odds" type="number" min="0" max="100" step="1" placeholder="0 %" aria-label="Minimum token odds percent"></label>
+  <span id="result-count" class="result-count"></span>
+  <button id="btn-reset" class="btn" type="button">RESET</button>
+  <button id="btn-csv" class="btn" type="button">CSV</button>
+  <button id="btn-json" class="btn" type="button">JSON</button>
+</section>
+
+<nav id="tabs" class="tabs" aria-label="Views"></nav>
+
+<section id="board-wrap" class="board-wrap">
+  <table id="board" class="board">
+    <thead><tr>
+      <th data-sort="rank">#</th>
+      <th data-sort="name">PROTOCOL</th>
+      <th data-sort="category">CATEGORY</th>
+      <th data-sort="tvl_usd" class="num">TVL</th>
+      <th data-sort="change_7d" class="num">7D</th>
+      <th data-sort="age_days" class="num">NO-TOKEN AGE</th>
+      <th data-sort="odds" class="num">TOKEN ODDS</th>
+      <th data-sort="implied_value_usd" class="num">IMPLIED VALUE / P25-P75</th>
+      <th data-sort="ev_per_hour" class="num">NET $/HR</th>
+      <th data-sort="verdict">VERDICT</th>
+      <th data-sort="capital">FARM PLAN</th>
+    </tr></thead>
+    <tbody id="board-body"></tbody>
+  </table>
+  <div id="alt-view" class="alt-view" hidden></div>
+</section>
+
+<div id="audits" class="audits" aria-label="Self-audit"></div>
+<div id="backdrop" class="backdrop" hidden></div>
+<aside id="detail" class="drawer" aria-label="Protocol detail" hidden></aside>
+<footer class="foot"><span id="foot-line"></span><span class="foot-right">derived only from the frozen snapshot - no holders, no launch dates, no network</span></footer>
+<noscript>This dashboard needs JavaScript; the data it reads is written beside the page.</noscript>
+</body>
+</html>
