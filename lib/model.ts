@@ -901,25 +901,7 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
 
   // Live: trading-normal.
   const live = snapshot.protocols.filter((p) => isTradingNormal(p) && !isPreToken(p));
-
-  // Set aside: everything not rankable-pre and not live.
-  const setAsideSet = new Set(snapshot.protocols.map((p) => p.slug));
-  rankablePre.forEach((p) => setAsideSet.delete(p.slug));
-  live.forEach((p) => setAsideSet.delete(p.slug));
-
-  const setAside = snapshot.protocols
-    .filter((p) => setAsideSet.has(p.slug))
-    .map((p) => {
-      let reason = '';
-      if (p.category === 'CEX') reason = 'centralized exchange; not farmable';
-      else if (VERSION_RE.test(p.name)) reason = 'versioned name; deprecated or fork';
-      else if (WRAPPED_RE.test(p.name)) reason = 'wrapped/staked/bridged asset';
-      else if (p.mcap_usd !== null && p.tvl_usd > 0) {
-        const r = p.mcap_usd / p.tvl_usd;
-        reason = r > 25 ? `extreme ratio ${r.toFixed(1)}x` : `thin ratio ${r.toFixed(3)}x`;
-      } else reason = 'no token yet and not rankable';
-      return { slug: p.slug, name: p.name, category: p.category, tvl_usd: p.tvl_usd, reason };
-    });
+  const liveSet = new Set(live.map((p) => p.slug));
 
   // Build the board: watchlist first, then below-floor, then above-floor, up to 200.
   const boardCandidates: SnapshotProtocol[] = [];
@@ -944,6 +926,23 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
       .sort((a, b) => b.tvl_usd - a.tvl_usd);
     for (const p of above) add(p);
   }
+
+  // Set aside: every protocol not on the board and not live.
+  const boardSlugs = new Set(boardCandidates.map((p) => p.slug));
+  const setAside = snapshot.protocols
+    .filter((p) => !boardSlugs.has(p.slug) && !liveSet.has(p.slug))
+    .map((p) => {
+      let reason = '';
+      if (isRankablePre(p)) reason = 'pre-token below board cutoff';
+      else if (p.category === 'CEX') reason = 'centralized exchange; not farmable';
+      else if (VERSION_RE.test(p.name)) reason = 'versioned name; deprecated or fork';
+      else if (WRAPPED_RE.test(p.name)) reason = 'wrapped/staked/bridged asset';
+      else if (p.mcap_usd !== null && p.tvl_usd > 0) {
+        const r = p.mcap_usd / p.tvl_usd;
+        reason = r > 25 ? `extreme ratio ${r.toFixed(1)}x` : `thin ratio ${r.toFixed(3)}x`;
+      } else reason = 'no token yet and not rankable';
+      return { slug: p.slug, name: p.name, category: p.category, tvl_usd: p.tvl_usd, reason };
+    });
 
   const peersFit = fitPeers(snapshot);
   const oddsFit = fitOdds(snapshot);
